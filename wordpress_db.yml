@@ -1,0 +1,21 @@
+--- 
+- hosts: '{{ target }}'
+  vars:
+   wp_password: '((wp_password}}'
+
+  remote_user: root
+  tasks:
+
+  - name: check if DB exists
+    shell: mysql -e 'show databases;' |grep wp_database
+    register: dbstatus
+    ignore_errors: True
+
+
+  - name: Create a new database with name  wp_database
+    mysql_db: name=wp_database  encoding=utf8 collation=utf8_general_ci state=present
+    when: dbstatus.rc != 0
+
+  - name: Create the database user for wordpress
+    mysql_user: name=wp_user password={{ wp_password }} priv=wp_database.*:ALL state=present
+

@@ -1,0 +1,57 @@
+--- 
+- hosts: '{{ target }}'
+  vars:
+    website_name: 'test'
+    wp_apache_hostname: 'test.com'
+    wordpress_dir: '/var/www'
+    wordpress_url: 'http://wordpress.org/latest.tar.gz'
+    wordpress_passwd: 'wp_password'
+    wordpress_user: 'wp_user'
+  remote_user: root
+  tasks:
+  - name: Check that {{ wordpress_dir }} exist
+    command: /usr/bin/test -e {{ wordpress_dir }}
+    register: dir_exists
+    ignore_errors: True
+ 
+  - name: Create wordpress directory at {{ wordpress_dir }}
+    when: dir_exists.rc != 0
+    file: state=directory path={{ wordpress_dir }} owner=apache  group=apache mode=0755 recurse=yes
+
+  - name: Download the latest wordpress
+    get_url: url={{ wordpress_url }} dest={{ wordpress_dir }}/latest.tar.gz
+ 
+  - name: Unzip the downloaded wordpress zipped file
+    unarchive: src={{ wordpress_dir }}/latest.tar.gz dest={{ wordpress_dir }} copy=no
+
+  - name: Rename the extracted wordpress directory as Website name
+    command: mv {{ wordpress_dir }}/wordpress {{ wordpress_dir }}/{{ website_name }}
+    register: dir_rename
+
+  - name: Copy the "wp-config.php" file inside the {{ website_name }} directory
+    when: dir_rename|success
+    template: src=wp-config.php -config.php dest={{ wordpress_dir }}/{{ website_name }}/wp-config.php
+ 
+  - name: Reset the permission on Website directory
+    file: state=directory path={{ wordpress_dir }}/{{ website_name }} owner=apache group=apache recurse=yes
+#
+
+  - name: Create sites-available directory
+    file: state=directory path=/etc/httpd/sites-available owner=root group=root mode=0755 recurse=yes
+#
+  - name: Create sites-enabled directory
+    file: state=directory path=/etc/httpd/sites-enabled owner=root group=root mode=0755 recurse=yes
+#
+  - name: Create ssl directory
+    file: state=directory path=/etc/httpd/ssl owner=root group=root mode=0755 recurse=yes
+  - name: Install openssl on target
+    yum: pkg=mod_ssl state=present
+  - name: Generate self certificate
+    shell: openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/httpd/ssl/apache.key -out /etc/httpd/ssl/apache.crt
+  
+  - name: add sites-enabled to httpd.conf
+    shell: echo "Include sites-enabled/*.conf" >> /etc/httpd/conf/httpd.conf
+  - name: WordPress | Apache | Copy virtual host configuration file
+    template: src=wp-vhosts.conf dest=/etc/httpd/sites-available/{{wp_apache_hostname}}.conf owner=root group=root mode=0644
+  - name: WordPress | Apache | Symlink virtual host configuration file from sites-available to sites-enabled
+    file: state=link src=/etc/httpd/sites-available/{{wp_apache_hostname}}.conf dest=/etc/httpd/sites-enabled/{{wp_apache_hostname}}.conf owner=root group=root mode=0644 

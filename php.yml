@@ -1,0 +1,18 @@
+
+---
+- hosts: '{{ target }}'
+  vars:
+  remote_user: root
+  tasks:
+  - name: install php 
+    yum: pkg={{item}} enablerepo=centosplus state=latest
+    with_items:
+     - php
+     - php-curl
+     - php-mysql
+     - php-gd
+     - php-mbstring
+    
+
+  - name: write the apache config file
+    template: src=info.php dest=/var/www/html/php.info
