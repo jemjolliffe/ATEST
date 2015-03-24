@@ -394,3 +394,26 @@ suod su
 sudo su
 man ssh-add
 sudo su
+type bash
+vi jj.sh
+type bash
+./jj.sh
+vi jj.sh
+./jj.sh
+vi jj1.sh
+./jj1.sh
+cat jj1.sh
+history | grep ssh
+ls
+sudo ssh -i testkeypair.pem root@172.31.5.118
+vi jj1.sh
+./jj1.sh
+sudo ssh-copy-id -i testkeypair.pem root@172.31.5.118
+sudo ssh-copy-id -i /root/.ssh/key.pub root@172.31.5.118
+su
+sudo su
+history | grep ssh
+scp -i testkeypair.pem root@172.31.5.118:/tmp
+vi extra.yml
+./jj.sh
+bash
